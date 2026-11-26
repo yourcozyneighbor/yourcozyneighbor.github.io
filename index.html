@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/style.css?v=4">
+<link rel="stylesheet" href="/assets/style.css?v=5">
 </head>
 <body class="with-side">
 
@@ -42,8 +42,18 @@
       </div>
     </div>
     <div>
-      <img class="hero-img" src="https://images.unsplash.com/photo-1632829882891-5047ccc421bc?auto=format&fit=crop&w=1000&q=80" alt="Bright, cozy living room with a fireplace and neutral furniture" width="1000" height="600">
-      <p class="credit">Photo by <a href="https://unsplash.com/@spacejoy?utm_source=your_cozy_neighbor&amp;utm_medium=referral" rel="noopener" target="_blank">Spacejoy</a> on <a href="https://unsplash.com/?utm_source=your_cozy_neighbor&amp;utm_medium=referral" rel="noopener" target="_blank">Unsplash</a></p>
+      <div class="slider" aria-roledescription="carousel" aria-label="Featured Quick Shops">
+        <a class="slide is-active" href="/hot-cocoa-bar/" data-credit-name="carolyn christine" data-credit-user="carolynchristine" aria-label="Shop the Hot Cocoa Bar Quick Shop">
+          <img src="https://images.unsplash.com/photo-1577819445935-e773c99f8412?auto=format&amp;fit=crop&amp;w=1000&amp;q=80" alt="Two mugs of hot cocoa topped with marshmallows" width="1000" height="600">
+          <span class="slide-cap"><span class="badge">Holiday Hosting</span><strong>Hot Cocoa Bar</strong><span>6 picks for a 4-zone cocoa station</span><em>Shop now →</em></span>
+        </a>
+        <a class="slide" href="/coffee-bar/" data-credit-name="Kadir Celep" data-credit-user="kadircelep" aria-label="Shop the Coffee Bar Quick Shop" tabindex="-1" aria-hidden="true">
+          <img src="https://images.unsplash.com/photo-1600424804969-3fce0c50da35?auto=format&amp;fit=crop&amp;w=1000&amp;q=80" alt="Dark ceramic mugs on a wooden coffee table" width="1000" height="600" loading="lazy">
+          <span class="slide-cap"><span class="badge">Kitchen &amp; Dining</span><strong>Coffee Bar</strong><span>5 picks for a small-kitchen coffee station</span><em>Shop now →</em></span>
+        </a>
+        <div class="dots"><button type="button" class="dot is-active" aria-label="Show Hot Cocoa Bar"></button><button type="button" class="dot" aria-label="Show Coffee Bar"></button></div>
+      </div>
+      <p class="credit slider-credit">Photo by <a href="https://unsplash.com/@carolynchristine?utm_source=your_cozy_neighbor&amp;utm_medium=referral" rel="noopener" target="_blank">carolyn christine</a> on <a href="https://unsplash.com/?utm_source=your_cozy_neighbor&amp;utm_medium=referral" rel="noopener" target="_blank">Unsplash</a></p>
     </div>
   </section>
 
@@ -147,6 +157,6 @@
   </div>
 </footer>
 
-<script src="/assets/site.js?v=4"></script>
+<script src="/assets/site.js?v=5"></script>
 </body>
 </html>
