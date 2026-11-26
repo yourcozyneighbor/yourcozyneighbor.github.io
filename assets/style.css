@@ -171,3 +171,6 @@ p{margin:0 0 14px}
 @media(max-width:620px){.slide-nav{width:32px;height:32px;font-size:22px}}
 .slide-nav{top:36%}
 @media(max-width:620px){.slide-nav{top:27%}}
+/* always show slider arrows on phones and tablets, even if the browser reports hover support */
+@media(max-width:1024px){.slide-nav{opacity:1!important}}
+@media(pointer:coarse){.slide-nav{opacity:1!important}}
