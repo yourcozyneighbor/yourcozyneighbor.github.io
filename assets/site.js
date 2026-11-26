@@ -66,3 +66,49 @@ document.querySelectorAll('.slider').forEach(function (box) {
   box.addEventListener('focusout', start);
   show(0); start();
 });
+
+/* Quick Shops pagination: N cards per page with numbered pages */
+document.querySelectorAll('.cards[data-per-page]').forEach(function (grid) {
+  var per = parseInt(grid.getAttribute('data-per-page'), 10) || 4;
+  var cards = Array.prototype.slice.call(grid.querySelectorAll('.card'));
+  var pages = Math.ceil(cards.length / per);
+  if (pages < 2) return;
+  var nav = document.createElement('nav');
+  nav.className = 'pager';
+  nav.setAttribute('aria-label', 'Quick Shops pages');
+  grid.parentNode.insertBefore(nav, grid.nextSibling);
+  var cur = 0;
+  function btn(label, aria, cls) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.textContent = label;
+    if (aria) b.setAttribute('aria-label', aria);
+    if (cls) b.className = cls;
+    return b;
+  }
+  function go(p, scroll) {
+    cur = Math.max(0, Math.min(pages - 1, p));
+    cards.forEach(function (c, i) { c.hidden = Math.floor(i / per) !== cur; });
+    nav.innerHTML = '';
+    var prev = btn('‹ Previous', 'Previous page', 'pg-step');
+    prev.disabled = cur === 0;
+    prev.addEventListener('click', function () { go(cur - 1, true); });
+    nav.appendChild(prev);
+    for (var i = 0; i < pages; i++) {
+      (function (i) {
+        var b = btn(String(i + 1), 'Page ' + (i + 1));
+        if (i === cur) b.setAttribute('aria-current', 'page');
+        b.addEventListener('click', function () { if (i !== cur) go(i, true); });
+        nav.appendChild(b);
+      })(i);
+    }
+    var next = btn('Next ›', 'Next page', 'pg-step');
+    next.disabled = cur === pages - 1;
+    next.addEventListener('click', function () { go(cur + 1, true); });
+    nav.appendChild(next);
+    if (scroll) {
+      var h = document.getElementById('quick-shops') || grid;
+      h.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+  go(0, false);
+});

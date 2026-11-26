@@ -174,3 +174,14 @@ p{margin:0 0 14px}
 /* always show slider arrows on phones and tablets, even if the browser reports hover support */
 @media(max-width:1024px){.slide-nav{opacity:1!important}}
 @media(pointer:coarse){.slide-nav{opacity:1!important}}
+
+/* Quick Shops pagination (2x2 per page) */
+.cards[data-per-page]{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media (max-width:560px){.cards[data-per-page]{grid-template-columns:1fr}}
+.cards .card[hidden]{display:none}
+.pager{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:4px;margin:22px 0 6px;font-size:16px}
+.pager button{background:none;border:0;font:inherit;color:var(--amber);cursor:pointer;min-width:34px;height:34px;padding:0 8px;border-radius:999px}
+.pager button:hover{background:var(--card);text-decoration:underline}
+.pager button[aria-current="page"]{color:var(--ink);font-weight:700;cursor:default;text-decoration:none;background:none}
+.pager .pg-step{font-weight:600}
+.pager .pg-step[disabled]{visibility:hidden}
