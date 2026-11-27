@@ -112,3 +112,70 @@ document.querySelectorAll('.cards[data-per-page]').forEach(function (grid) {
   }
   go(0, false);
 });
+
+/* Site search: live results for every Quick Shop and pick (index in /assets/search-index.js). */
+(function () {
+  var data = window.YCN_SEARCH || [];
+  document.querySelectorAll('form.site-search').forEach(function (form) {
+    var input = form.querySelector('input[type="search"]');
+    var list = form.querySelector('.search-results');
+    var active = -1, shown = [];
+    function norm(s) { return s.toLowerCase().replace(/[^a-z0-9$\- ]+/g, ' ').trim(); }
+    function stem(w) { return w.length > 3 ? w.replace(/(ies)$/, 'y').replace(/(es|s)$/, '') : w; }
+    function esc(s) { return s.replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+    function search(q) {
+      var words = norm(q).split(/\s+/).filter(Boolean).map(stem);
+      if (!words.length) return [];
+      var out = [];
+      data.forEach(function (it) {
+        var score = 0, name = it.n.toLowerCase();
+        for (var j = 0; j < words.length; j++) {
+          if (it.k.indexOf(words[j]) < 0) return;
+          score += name.indexOf(words[j]) >= 0 ? 3 : 1;
+        }
+        if (it.t === 's') score += 1;
+        out.push({ it: it, score: score });
+      });
+      out.sort(function (a, b) { return b.score - a.score; });
+      return out.slice(0, 8).map(function (o) { return o.it; });
+    }
+    function render() {
+      var q = input.value.trim();
+      shown = search(q); active = -1;
+      if (!q) { list.hidden = true; list.innerHTML = ''; input.setAttribute('aria-expanded', 'false'); return; }
+      if (!shown.length) {
+        list.innerHTML = '<li class="sr-empty">No picks match "' + esc(q) + '". Try "mugs", "candles" or "storage".</li>';
+      } else {
+        list.innerHTML = shown.map(function (it, k) {
+          var thumb = it.i ? '<img src="' + it.i + '" alt="" width="44" height="44" loading="lazy">' : '<span class="sr-dot" aria-hidden="true"></span>';
+          var meta = it.t === 's' ? 'Quick Shop · ' + esc(it.s) : 'In ' + esc(it.s);
+          return '<li role="option" id="' + form.id + '-o' + k + '"><a href="' + it.u + '">' + thumb +
+            '<span><b>' + esc(it.n) + '</b><small>' + meta + '</small></span></a></li>';
+        }).join('');
+      }
+      list.hidden = false; input.setAttribute('aria-expanded', 'true');
+    }
+    function move(d) {
+      var opts = list.querySelectorAll('li[role="option"]');
+      if (!opts.length) return;
+      active = (active + d + opts.length) % opts.length;
+      opts.forEach(function (o, k) { o.classList.toggle('is-active', k === active); });
+      input.setAttribute('aria-activedescendant', opts[active].id);
+    }
+    input.addEventListener('input', render);
+    input.addEventListener('focus', function () { if (input.value.trim()) render(); });
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowDown') { e.preventDefault(); move(1); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); move(-1); }
+      else if (e.key === 'Escape') { list.hidden = true; input.blur(); }
+    });
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var pick = shown[active >= 0 ? active : 0];
+      if (pick) location.href = pick.u; else render();
+    });
+    document.addEventListener('click', function (e) { if (!form.contains(e.target)) list.hidden = true; });
+    var q0 = new URLSearchParams(location.search).get('q');
+    if (q0) { input.value = q0; render(); }
+  });
+})();
