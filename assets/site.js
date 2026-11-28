@@ -116,30 +116,41 @@ document.querySelectorAll('.cards[data-per-page]').forEach(function (grid) {
 /* Quick Shop finder uses the same searchable catalog as the header. */
 (function () {
   var header = document.querySelector('header form.site-search');
-  var side = document.querySelector('.layout > .side');
-  if (!header || !side || !window.YCN_SEARCH) return;
+  var layout = document.querySelector('.layout');
+  if (!header || !layout || !window.YCN_SEARCH) return;
 
   var style = document.createElement('style');
   style.textContent = `
     .finder-launch{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:21;border:0;cursor:pointer;box-shadow:0 4px 16px #2f2a2540}
     body:has(.sticky) .finder-launch{bottom:calc(72px + env(safe-area-inset-bottom))}
-    .finder-side,.finder-dialog{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
-    .finder-side{margin-bottom:16px}
-    .finder-side h2,.finder-dialog h2{margin:0 0 10px;font-size:20px}
+    .shop-categories,.finder-dialog{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+    .shop-categories h2,.finder-dialog h2{margin:0 0 10px;font-size:20px}
     .finder-dialog{width:min(440px,calc(100% - 32px));max-height:85dvh;box-shadow:0 12px 30px #2f2a2540}
     .finder-dialog::backdrop{background:#2f2a2566}
     .finder-close{float:right;border:1px solid var(--line);background:var(--soft);color:var(--ink);border-radius:999px;font:inherit;min-width:44px;min-height:44px;cursor:pointer}
-    .finder-side .site-search,.finder-dialog .site-search{margin:0;max-width:none}
-    .finder-side .site-search input,.finder-dialog .site-search input{font-size:16px}
-    .finder-side .site-search button,.finder-dialog .site-search button{top:21px}
-    .finder-dialog .search-results,.finder-side .search-results{position:static;margin-top:8px;box-shadow:none;max-height:38dvh}
+    .finder-dialog .site-search{margin:0;max-width:none}
+    .finder-dialog .site-search input{font-size:16px}
+    .finder-dialog .site-search button{top:21px}
+    .finder-dialog .search-results{position:static;margin-top:8px;box-shadow:none;max-height:38dvh}
+    .shop-categories{display:none}
+    .shop-categories details + details{border-top:1px solid var(--line)}
+    .shop-categories summary{padding:8px 0;cursor:pointer;font-weight:700;font-size:14px}
+    .shop-categories ul{list-style:none;margin:0 0 8px;padding:0 0 0 12px}
+    .shop-categories a{display:block;padding:4px 0;font-size:14px;line-height:1.4}
+    .shop-categories a[aria-current="page"]{color:var(--ink);font-weight:700}
     @media(min-width:768px){
       .finder-launch{display:none}
-      .layout{display:grid;grid-template-columns:minmax(0,1fr) 230px;gap:24px;align-items:start}
-      .side{display:block;position:sticky;top:20px;margin-top:28px}
+      .layout{display:grid;grid-template-columns:190px minmax(0,1fr);gap:24px;align-items:start}
+      .shop-categories{display:block;position:sticky;top:20px;margin-top:28px;max-height:calc(100dvh - 40px);overflow:auto}
+      .layout > .side{display:none}
+      .layout > .content > .prime-inline{display:block}
     }
-    @media(min-width:1100px){.layout{grid-template-columns:minmax(0,1fr) 270px;gap:40px}}
-    @media(min-width:768px) and (max-width:1099px){.side > .prime-box{display:none}.home-hero{grid-template-columns:1fr}}
+    @media(min-width:768px) and (max-width:1099px){.home-hero{grid-template-columns:1fr}}
+    @media(min-width:1240px){
+      .layout{max-width:1360px;grid-template-columns:205px minmax(0,1fr) 250px;gap:24px}
+      .layout > .side{display:block}
+      .layout > .content > .prime-inline{display:none}
+    }
   `;
   document.head.appendChild(style);
 
@@ -158,13 +169,40 @@ document.querySelectorAll('.cards[data-per-page]').forEach(function (grid) {
     return input;
   }
 
-  var panel = document.createElement('section');
-  panel.className = 'finder-side';
-  panel.setAttribute('aria-labelledby', 'finder-side-title');
-  panel.innerHTML = '<h2 id="finder-side-title">Find a Quick Shop</h2>';
-  addForm(panel, 'finder-side-search');
-  side.setAttribute('aria-label', 'Shop tools');
-  side.prepend(panel);
+  var categories = document.createElement('nav');
+  categories.className = 'shop-categories';
+  categories.setAttribute('aria-labelledby', 'shop-categories-title');
+  categories.innerHTML = '<h2 id="shop-categories-title">Shop by Category</h2>';
+
+  var groups = new Map();
+  window.YCN_SEARCH.forEach(function (shop) {
+    if (shop.t !== 's') return;
+    if (!groups.has(shop.s)) groups.set(shop.s, []);
+    groups.get(shop.s).push(shop);
+  });
+
+  var currentPath = location.pathname.replace(/index\.html$/, '');
+  Array.from(groups.keys()).sort().forEach(function (category) {
+    var group = document.createElement('details');
+    var label = document.createElement('summary');
+    var shops = document.createElement('ul');
+    label.textContent = category;
+    groups.get(category).forEach(function (shop) {
+      var item = document.createElement('li');
+      var link = document.createElement('a');
+      link.href = shop.u;
+      link.textContent = shop.n;
+      if (shop.u === currentPath) {
+        link.setAttribute('aria-current', 'page');
+        group.open = true;
+      }
+      item.appendChild(link);
+      shops.appendChild(item);
+    });
+    group.append(label, shops);
+    categories.appendChild(group);
+  });
+  layout.prepend(categories);
 
   if (typeof HTMLDialogElement === 'undefined') return;
   var dialog = document.createElement('dialog');
