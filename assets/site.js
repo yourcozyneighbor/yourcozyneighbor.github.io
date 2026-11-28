@@ -113,12 +113,93 @@ document.querySelectorAll('.cards[data-per-page]').forEach(function (grid) {
   go(0, false);
 });
 
+/* Quick Shop finder uses the same searchable catalog as the header. */
+(function () {
+  var header = document.querySelector('header form.site-search');
+  var side = document.querySelector('.layout > .side');
+  if (!header || !side || !window.YCN_SEARCH) return;
+
+  var style = document.createElement('style');
+  style.textContent = `
+    .finder-launch{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:21;border:0;cursor:pointer;box-shadow:0 4px 16px #2f2a2540}
+    body:has(.sticky) .finder-launch{bottom:calc(72px + env(safe-area-inset-bottom))}
+    .finder-side,.finder-dialog{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+    .finder-side{margin-bottom:16px}
+    .finder-side h2,.finder-dialog h2{margin:0 0 10px;font-size:20px}
+    .finder-dialog{width:min(440px,calc(100% - 32px));max-height:85dvh;box-shadow:0 12px 30px #2f2a2540}
+    .finder-dialog::backdrop{background:#2f2a2566}
+    .finder-close{float:right;border:1px solid var(--line);background:var(--soft);color:var(--ink);border-radius:999px;font:inherit;min-width:44px;min-height:44px;cursor:pointer}
+    .finder-side .site-search,.finder-dialog .site-search{margin:0;max-width:none}
+    .finder-side .site-search input,.finder-dialog .site-search input{font-size:16px}
+    .finder-side .site-search button,.finder-dialog .site-search button{top:21px}
+    .finder-dialog .search-results,.finder-side .search-results{position:static;margin-top:8px;box-shadow:none;max-height:38dvh}
+    @media(min-width:768px){
+      .finder-launch{display:none}
+      .layout{display:grid;grid-template-columns:minmax(0,1fr) 230px;gap:24px;align-items:start}
+      .side{display:block;position:sticky;top:20px;margin-top:28px}
+    }
+    @media(min-width:1100px){.layout{grid-template-columns:minmax(0,1fr) 270px;gap:40px}}
+    @media(min-width:768px) and (max-width:1099px){.side > .prime-box{display:none}.home-hero{grid-template-columns:1fr}}
+  `;
+  document.head.appendChild(style);
+
+  function addForm(container, id) {
+    var form = header.cloneNode(true);
+    var input = form.querySelector('input[type="search"]');
+    var list = form.querySelector('.search-results');
+    form.id = id;
+    form.dataset.shopFinder = id;
+    input.value = '';
+    input.placeholder = 'Search Quick Shops';
+    input.setAttribute('aria-label', 'Search Quick Shops');
+    input.setAttribute('aria-controls', id + '-results');
+    list.id = id + '-results';
+    container.appendChild(form);
+    return input;
+  }
+
+  var panel = document.createElement('section');
+  panel.className = 'finder-side';
+  panel.setAttribute('aria-labelledby', 'finder-side-title');
+  panel.innerHTML = '<h2 id="finder-side-title">Find a Quick Shop</h2>';
+  addForm(panel, 'finder-side-search');
+  side.setAttribute('aria-label', 'Shop tools');
+  side.prepend(panel);
+
+  if (typeof HTMLDialogElement === 'undefined') return;
+  var dialog = document.createElement('dialog');
+  dialog.className = 'finder-dialog';
+  dialog.id = 'finder-dialog';
+  dialog.setAttribute('aria-labelledby', 'finder-dialog-title');
+  dialog.innerHTML = '<button type="button" class="finder-close" aria-label="Close shop finder">×</button><h2 id="finder-dialog-title">Find a Quick Shop</h2>';
+  var mobileInput = addForm(dialog, 'finder-mobile-search');
+  var launch = document.createElement('button');
+  launch.type = 'button';
+  launch.className = 'btn finder-launch';
+  launch.textContent = 'Find a Shop';
+  launch.setAttribute('aria-haspopup', 'dialog');
+  launch.setAttribute('aria-controls', dialog.id);
+  document.body.append(launch, dialog);
+
+  launch.addEventListener('click', function () {
+    dialog.showModal();
+    dialog.querySelector('.finder-close').focus();
+    mobileInput.dispatchEvent(new Event('input'));
+  });
+  dialog.querySelector('.finder-close').addEventListener('click', function () { dialog.close(); });
+  dialog.addEventListener('close', function () { if (launch.getClientRects().length) launch.focus(); });
+  var wide = matchMedia('(min-width:768px)');
+  wide.addEventListener('change', function () { if (wide.matches && dialog.open) dialog.close(); });
+})();
+
 /* Site search: live results for every Quick Shop and pick (index in /assets/search-index.js). */
 (function () {
   var data = window.YCN_SEARCH || [];
   document.querySelectorAll('form.site-search').forEach(function (form) {
     var input = form.querySelector('input[type="search"]');
     var list = form.querySelector('.search-results');
+    var finder = form.dataset.shopFinder;
+    var catalog = finder ? data.filter(function (item) { return item.t === 's'; }) : data;
     var active = -1, shown = [];
     function norm(s) { return s.toLowerCase().replace(/[^a-z0-9$\- ]+/g, ' ').trim(); }
     function stem(w) { return w.length > 3 ? w.replace(/(ies)$/, 'y').replace(/(es|s)$/, '') : w; }
@@ -127,7 +208,7 @@ document.querySelectorAll('.cards[data-per-page]').forEach(function (grid) {
       var words = norm(q).split(/\s+/).filter(Boolean).map(stem);
       if (!words.length) return [];
       var out = [];
-      data.forEach(function (it) {
+      catalog.forEach(function (it) {
         var score = 0, name = it.n.toLowerCase();
         for (var j = 0; j < words.length; j++) {
           if (it.k.indexOf(words[j]) < 0) return;
@@ -141,10 +222,12 @@ document.querySelectorAll('.cards[data-per-page]').forEach(function (grid) {
     }
     function render() {
       var q = input.value.trim();
-      shown = search(q); active = -1;
-      if (!q) { list.hidden = true; list.innerHTML = ''; input.setAttribute('aria-expanded', 'false'); return; }
+      var browse = !q && finder === 'finder-mobile-search';
+      shown = browse ? catalog : search(q); active = -1;
+      input.removeAttribute('aria-activedescendant');
+      if (!q && !browse) { list.hidden = true; list.innerHTML = ''; input.setAttribute('aria-expanded', 'false'); return; }
       if (!shown.length) {
-        list.innerHTML = '<li class="sr-empty">No picks match "' + esc(q) + '". Try "mugs", "candles" or "storage".</li>';
+        list.innerHTML = '<li class="sr-empty">No ' + (finder ? 'Quick Shops' : 'picks') + ' match "' + esc(q) + '".' + (finder ? '' : ' Try "mugs", "candles" or "storage".') + '</li>';
       } else {
         list.innerHTML = shown.map(function (it, k) {
           var thumb = it.i ? '<img src="' + it.i + '" alt="" width="44" height="44" loading="lazy">' : '<span class="sr-dot" aria-hidden="true"></span>';
@@ -163,19 +246,19 @@ document.querySelectorAll('.cards[data-per-page]').forEach(function (grid) {
       input.setAttribute('aria-activedescendant', opts[active].id);
     }
     input.addEventListener('input', render);
-    input.addEventListener('focus', function () { if (input.value.trim()) render(); });
+    input.addEventListener('focus', function () { if (input.value.trim() || finder === 'finder-mobile-search') render(); });
     input.addEventListener('keydown', function (e) {
       if (e.key === 'ArrowDown') { e.preventDefault(); move(1); }
       else if (e.key === 'ArrowUp') { e.preventDefault(); move(-1); }
-      else if (e.key === 'Escape') { list.hidden = true; input.blur(); }
+      else if (e.key === 'Escape' && finder !== 'finder-mobile-search') { list.hidden = true; input.blur(); }
     });
     form.addEventListener('submit', function (e) {
       e.preventDefault();
       var pick = shown[active >= 0 ? active : 0];
       if (pick) location.href = pick.u; else render();
     });
-    document.addEventListener('click', function (e) { if (!form.contains(e.target)) list.hidden = true; });
+    document.addEventListener('click', function (e) { if (!finder && !form.contains(e.target)) list.hidden = true; });
     var q0 = new URLSearchParams(location.search).get('q');
-    if (q0) { input.value = q0; render(); }
+    if (q0 && !finder) { input.value = q0; render(); }
   });
 })();
